@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Cartoonize AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+        body {
+            background-color: #eceff5;
+        }
+        .image-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        #image-preview {
+            width: 45%;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        #result-img {
+            width: 45%;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .container {
+            max-width: 700px;
+            padding: 20px;
+            margin: 20px auto;
+            background-color: #fff;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .container h1 {
+            font-weight: bold;
+            font-size: 3rem;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+        form#upload-form {
+            margin-bottom: 30px;
+        }
+        form#upload-form label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            color: #666666;
+        }
+        form#upload-form input[type="file"] {
+            display: block;
+            margin-bottom: 10px;
+            border: none;
+            outline: none;
+            font-size: 1.2rem;
+            color: #666666;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+        }
+        form#upload-form button[type="submit"] {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007aff;
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: background-color 0.3s ease;
+        }
+        form#upload-form button[type="submit"]:hover {
+            background-color: #1e81e9;
+        }
+        #result-container {
+            display: none;
+            margin-top: 30px;
+            text-align: center;
+        }
+        #result-container img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        #download-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007aff;
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: background-color 0.3s ease;
+        }
+        #download-btn:hover {
+            background-color: #1e81e9;
+        }
+        #image-preview {
+            display: none;
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+     /* 新添加的部分 */
+     #loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: none;
+      }
+
+      #loading-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 4px solid #ddd;
+        border-top-color: #6699cc;
+        animation: loading 1s infinite;
+        display: none;
+      }
+
+      @keyframes loading {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cartoonize AI</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+      <label for="file-input">Upload an image:</label>
+      <input type="file" name="file" id="file-input">
+      <label for="upsample-align">
+        <input type="checkbox" id="upsample-align" name="upsample_align" value="1">
+        Upsample align
+      </label>
+      <label for="x32">
+        <input type="checkbox" id="x32" name="x32" value="1">
+        Resize to multiple of 32
+      </label>
+      <!-- 将 id 设置为 "cartoonize-btn" -->
+      <button id="cartoonize-btn" type="submit">Cartoonize</button> 
+    </form>
+    <div class="image-container">
+      <img id="image-preview" src="#" alt="Preview Image">
+      <img id="result-img">
+      <!-- 添加的两个元素 -->
+      <div id="loading-overlay">
+        <div id="loading-indicator"></div>
+      </div> 
+    </div>
+    <div id="result-container">
+      <!-- 将 id 设置为 "download-btn" -->
+      <a id="download-btn" href="" download>Download Cartoonized Image</a>
+    </div>
+  </div>
+  <script>
+    const form = document.getElementById('upload-form');
+    const fileInput = document.getElementById('file-input');
+    const resultContainer = document.getElementById('result-container');
+    const resultImg = document.getElementById('result-img');
+    // 修改这里将 'button' 更改为 'cartoonize-btn' 
+    const cartoonizeBtn = document.getElementById('cartoonize-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const imagePreview = document.getElementById('image-preview');
+    // 添加两个元素
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        // Create a new FileReader
+        const reader = new FileReader();
+        // Set the image preview to the file's URL
+        reader.addEventListener('load', () => {
+          imagePreview.src = reader.result;
+          imagePreview.style.display = 'block'
+        });
+        // Load the file as a URL
+        reader.readAsDataURL(file);
+      }
+    });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      // Disable the Cartoonize button
+      // 修改这里将 cartoonizeBtn.disabled 设为 true
+      cartoonizeBtn.disabled = true;
+      // Show the loading overlay and indicator
+      // 添加这两行代码开启遮罩层和指示器
+      loadingOverlay.style.display = 'block';
+      loadingIndicator.style.display = 'block';
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('upsample_align', document.getElementById('upsample-align').checked ? 1 : 0);
+      formData.append('x32', document.getElementById('x32').checked ? 1 : 0);
+      fetch('/cartoonize', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => {
+          // Hide the loading overlay and indicator
+          // 添加这两行代码隐藏遮罩层和指示器
+          loadingOverlay.style.display = 'none';
+          loadingIndicator.style.display = 'none';
+          cartoonizeBtn.disabled = false; // 恢复 Cartoonize 按钮的状态
+          if (!response.ok) {
+            throw new Error('Error cartoonizing image');
+          }
+          return response.json();
+        })
+        .then(result => {
+          resultImg.src = result.result_image;
+          resultContainer.style.display = 'block';
+          downloadBtn.href = result.result_image;
+        })
+        .catch(error => {
+          console.error(error);
+          alert(error.message);
+        })
+    });
+    downloadBtn.addEventListener('click', () => {
+      downloadImage(resultImg.src);
+    });
+    function downloadImage(url) {
+      const link = document.createElement('a');
+      link.download = 'cartoonized-image.jpg';
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>

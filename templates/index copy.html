@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Cartoonize AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+
+        body {
+            background-color: #eceff5;
+        }
+
+        .container {
+            max-width: 700px;
+            padding: 20px;
+            margin: 20px auto;
+            background-color: #fff;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .container h1 {
+            font-weight: bold;
+            font-size: 3rem;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+
+        form#upload-form {
+            margin-bottom: 30px;
+        }
+
+        form#upload-form label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            color: #666666;
+        }
+
+        form#upload-form input[type="file"] {
+            display: block;
+            margin-bottom: 10px;
+            border: none;
+            outline: none;
+            font-size: 1.2rem;
+            color: #666666;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        form#upload-form button[type="submit"] {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007aff;
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        form#upload-form button[type="submit"]:hover {
+            background-color: #1e81e9;
+        }
+
+        #result-container {
+            display: none;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        #result-container img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px; 
+        }
+
+        #download-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007aff;
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        #download-btn:hover {
+            background-color: #1e81e9;
+        }
+
+        /* 加载状态样式 */
+        #loading-container {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #loading-container .loader {
+            border: 6px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007aff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+        }
+
+        #loading-container p {
+            font-size: 1.2rem;
+            text-align: center;
+            color: #666666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cartoonize AI</h1>
+
+        <form id="upload-form" enctype="multipart/form-data">
+            <label for="file-input">Upload an image:</label>
+            <input type="file" name="file" id="file-input">
+            <label for="upsample-align">
+                <input type="checkbox" id="upsample-align" name="upsample_align" value="1">
+                Upsample align
+            </label>
+            <label for="x32">
+                <input type="checkbox" id="x
+              </label>
+              <button type="submit">Cartoonize</button>
+          </form>
+  
+          <!-- 加载状态 -->
+          <div id="loading-container">
+              <div class="loader"></div>
+              <p>Cartoonizing...</p>
+          </div>
+  
+          <div id="result-container">
+              <img id="result-img" src="">
+              <button id="download-btn" download>Download</button>
+          </div>
+      </div>
+  
+      <script>
+          const form = document.getElementById('upload-form');
+          const resultContainer = document.getElementById('result-container');
+          const resultImg = document.getElementById('result-img');
+          const downloadBtn = document.getElementById('download-btn');
+          const loadingContainer = document.getElementById('loading-container');
+  
+          // 显示加载状态
+          function showLoading() {
+              loadingContainer.style.display = 'block';
+          }
+  
+          // 隐藏加载状态
+          function hideLoading() {
+              loadingContainer.style.display = 'none';
+          }
+  
+          // 显示卡通化结果
+          function showResult(data) {
+              resultImg.setAttribute('src', `data:image/jpeg;base64, ${data}`);
+              resultContainer.style.display = 'block';
+          }
+  
+          // 下载处理后的图片
+          function downloadImage(data) {
+              const link = document.createElement('a');
+              link.download = 'cartoonized.jpg';
+              link.href = `data:image/jpeg;base64, ${data}`;
+              link.click();
+          }
+  
+          form.addEventListener('submit', async (event) => {
+              event.preventDefault();
+              showLoading();
+              resultContainer.style.display = 'none';
+  
+              const formData = new FormData(event.target);
+              const upsampleAlignCheckbox = document.getElementById('upsample-align');
+              const x32Checkbox = document.getElementById('x32');
+  
+              // 添加 upsample_align 和 output_scale 参数
+              formData.append('upsample_align', upsampleAlignCheckbox ? '1' : '0');
+              formData.append('output_scale', x32Checkbox ? '32' : '8');
+  
+              try {
+                  const response = await fetch('/cartoonize', {
+                      method: 'POST',
+                      body: formData
+                  });
+  
+                  if (!response.ok) {
+                      throw new Error(`Failed to cartoonize image. Server responded with ${response.status} (${response.statusText}).`);
+                  }
+  
+                  const data = await response.json();
+                  hideLoading();
+                  showResult(data.image_data);
+              } catch (error) {
+                  console.error(error);
+                  hideLoading();
+                  alert('Failed to cartoonize image. Please try again later.');
+              }
+          });
+  
+          downloadBtn.addEventListener('click', () => {
+              downloadImage(resultImg.getAttribute('src'));
+          });
+      </script>
+  </body>
+  </html>
+  
